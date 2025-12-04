@@ -13,6 +13,8 @@ public class Robot extends TimedRobot {
 
   //private final RobotContainer m_robotContainer;
 
+  private TalonFX motor1 = new TalonFX(11);
+
   public Robot() {
     //m_robotContainer = new RobotContainer();
   }
@@ -41,7 +43,9 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+    motor1.set(0.5);
+  }
 
   @Override
   public void autonomousExit() {}
