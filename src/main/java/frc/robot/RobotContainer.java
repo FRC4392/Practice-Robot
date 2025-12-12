@@ -4,11 +4,18 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 
 public class RobotContainer {
-  public RobotContainer() {
+  private final DeceiverRobotState robotState;
+  public RobotContainer(DeceiverRobotState state) {
+    robotState = state;
+
+    // Lower brownout voltage
+    RobotController.setBrownoutVoltage(6.0);
+
     configureBindings();
   }
 
