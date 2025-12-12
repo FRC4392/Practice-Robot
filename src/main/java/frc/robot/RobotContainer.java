@@ -11,12 +11,12 @@ import frc.robot.operatorinterface.OperatorInterface;
 public class RobotContainer {
   private final DeceiverRobotState robotState;
 
-  //Subsystems
+  // Subsystems
 
-  //Operator Interface
+  // Operator Interface
   private final OperatorInterface operatorInterface;
 
-    /**
+  /**
    * Constructor
    *
    * @param state RobotState object to track the state of the robot
@@ -27,14 +27,14 @@ public class RobotContainer {
     // Lower brownout voltage
     RobotController.setBrownoutVoltage(6.0);
 
-    //Create Operator Interface
+    // Create Operator Interface
     // TODO: Sim operator interface
     operatorInterface = new OperatorInterface(robotState);
 
     // Create subsystem hardware
     switch (RobotConstants.currentMode) {
       case COMMISIONING:
-        //Fall Through
+        // Fall Through
       case REAL:
         // Real Robot, use real hardware interfaces
         break;
@@ -50,13 +50,9 @@ public class RobotContainer {
     configureBindings();
   }
 
-  private void configureAutoModes() {
+  private void configureAutoModes() {}
 
-  }
-
-  private void configureBindings() {
-
-  }
+  private void configureBindings() {}
 
   public Command getAutonomousCommand() {
     return operatorInterface.getAutoCommand();
