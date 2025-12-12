@@ -6,22 +6,59 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.operatorinterface.OperatorInterface;
 
 public class RobotContainer {
   private final DeceiverRobotState robotState;
+
+  //Subsystems
+
+  //Operator Interface
+  private final OperatorInterface operatorInterface;
+
+    /**
+   * Constructor
+   *
+   * @param state RobotState object to track the state of the robot
+   */
   public RobotContainer(DeceiverRobotState state) {
     robotState = state;
 
     // Lower brownout voltage
     RobotController.setBrownoutVoltage(6.0);
 
+    //Create Operator Interface
+    // TODO: Sim operator interface
+    operatorInterface = new OperatorInterface(robotState);
+
+    // Create subsystem hardware
+    switch (RobotConstants.currentMode) {
+      case COMMISIONING:
+        //Fall Through
+      case REAL:
+        // Real Robot, use real hardware interfaces
+        break;
+      case SIM:
+        // Simulated robot use simulation hardware interfaces
+        break;
+      case REPLAY:
+        // Replayed Robot, don't use hardware
+        break;
+    }
+
+    configureAutoModes();
     configureBindings();
   }
 
-  private void configureBindings() {}
+  private void configureAutoModes() {
+
+  }
+
+  private void configureBindings() {
+
+  }
 
   public Command getAutonomousCommand() {
-    return Commands.print("No autonomous command configured");
+    return operatorInterface.getAutoCommand();
   }
 }
