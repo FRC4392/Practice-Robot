@@ -4,6 +4,10 @@
 
 package frc.robot.subsystems.swerve;
 
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.Celsius;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.Volts;
 import static frc.robot.subsystems.swerve.SwerveConstants.*;
 import static frc.robot.util.PhoenixUtil.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
@@ -197,11 +201,11 @@ public class SwerveModuleIODeceivers implements SwerveModuleIO {
             drivePosition, driveVelocity, driveAppliedVolts, driveCurrent, driveTemp);
 
     inputs.driveConnected = driveConnectedDebounce.calculate(driveStatus.isOK());
-    inputs.drivePositionRad = Units.rotationsToRadians(drivePosition.getValueAsDouble());
-    inputs.driveVelocityRadPerSec = Units.rotationsToRadians(driveVelocity.getValueAsDouble());
-    inputs.driveAppliedVolts = driveAppliedVolts.getValueAsDouble();
-    inputs.driveCurrentAmps = driveCurrent.getValueAsDouble();
-    inputs.driveMotorTemp = driveTemp.getValueAsDouble();
+    inputs.drivePositionAngle = drivePosition.getValue();
+    inputs.driveVelocity = driveVelocity.getValue();
+    inputs.driveAppliedVolts = driveAppliedVolts.getValue();
+    inputs.driveCurrentAmps = driveCurrent.getValue();
+    inputs.driveMotorTemp = driveTemp.getValue();
 
     // Update turn inputs
     sparkStickyFault = false;
@@ -212,17 +216,19 @@ public class SwerveModuleIODeceivers implements SwerveModuleIO {
     ifOk(
         azimuthMotor,
         azimuthEncoder::getVelocity,
-        (value) -> inputs.azimuthVelocityRadPerSec = value);
+        (value) -> inputs.azimuthVelocity = RadiansPerSecond.of(value));
     ifOk(
         azimuthMotor,
         new DoubleSupplier[] {azimuthMotor::getAppliedOutput, azimuthMotor::getBusVoltage},
-        (values) -> inputs.azimuthAppliedVolts = values[0] * values[1]);
+        (values) -> inputs.azimuthAppliedVolts = Volts.of(values[0] * values[1]));
     ifOk(
-        azimuthMotor, azimuthMotor::getOutputCurrent, (value) -> inputs.azimuthCurrentAmps = value);
+        azimuthMotor,
+        azimuthMotor::getOutputCurrent,
+        (value) -> inputs.azimuthCurrent = Amps.of(value));
     ifOk(
         azimuthMotor,
         azimuthMotor::getMotorTemperature,
-        (value) -> inputs.azimuthMotorTemp = value);
+        (value) -> inputs.azimuthMotorTemp = Celsius.of(value));
     inputs.azimuthConnected = turnConnectedDebounce.calculate(!sparkStickyFault);
 
     // Update odometry inputs
@@ -241,6 +247,7 @@ public class SwerveModuleIODeceivers implements SwerveModuleIO {
     turnPositionQueue.clear();
   }
 
+  // TODO: Convert to volts
   @Override
   public void setAzimuthOpenLoop(double output) {
     azimuthMotor.setVoltage(output);
@@ -255,16 +262,17 @@ public class SwerveModuleIODeceivers implements SwerveModuleIO {
   }
 
   @Override
-  public void setDriveVelocity(double velocityRadPerSec) {
-    double velocityRotPerSec = Units.radiansToRotations(velocityRadPerSec);
+  public void setDriveVelocity(AngularVelocity velocity) {
+    // double velocityRotPerSec = Units.radiansToRotations(velocityRadPerSec);
     driveMotor.setControl(
         switch (driveMotorClosedLoopOutput) {
-          case Voltage -> velocityVoltageRequest.withVelocity(velocityRotPerSec);
-          case TorqueCurrentFOC -> velocityTorqueCurrentRequest.withVelocity(velocityRotPerSec);
-          case DutyCyle -> velocityDutyCycle.withVelocity(velocityRotPerSec);
+          case Voltage -> velocityVoltageRequest.withVelocity(velocity);
+          case TorqueCurrentFOC -> velocityTorqueCurrentRequest.withVelocity(velocity);
+          case DutyCyle -> velocityDutyCycle.withVelocity(velocity);
         });
   }
 
+  // TODO: Convert to volts
   @Override
   public void setDriveOpenLoop(double output) {
     driveMotor.setControl(

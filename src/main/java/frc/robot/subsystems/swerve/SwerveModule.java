@@ -4,6 +4,8 @@
 
 package frc.robot.subsystems.swerve;
 
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.swerve.SwerveConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -77,7 +79,7 @@ public class SwerveModule {
     state.cosineScale(getAngle());
 
     // Apply setpoints
-    io.setDriveVelocity(state.speedMetersPerSecond / wheelRadiusMeters);
+    io.setDriveVelocity(RadiansPerSecond.of(state.speedMetersPerSecond / wheelRadiusMeters));
     io.setAzimuthPosition(state.angle);
   }
 
@@ -100,12 +102,12 @@ public class SwerveModule {
 
   /** Returns the current drive position of the module in meters. */
   public double getPositionMeters() {
-    return inputs.drivePositionRad * wheelRadiusMeters;
+    return inputs.drivePositionAngle.in(Radians) * wheelRadiusMeters;
   }
 
   /** Returns the current drive velocity of the module in meters per second. */
   public double getVelocityMetersPerSec() {
-    return inputs.driveVelocityRadPerSec * wheelRadiusMeters;
+    return inputs.driveVelocity.in(RadiansPerSecond) * wheelRadiusMeters;
   }
 
   /** Returns the module position (turn angle and drive position). */
@@ -130,11 +132,11 @@ public class SwerveModule {
 
   /** Returns the module position in radians. */
   public double getWheelRadiusCharacterizationPosition() {
-    return inputs.drivePositionRad;
+    return inputs.drivePositionAngle.in(Radians);
   }
 
   /** Returns the module velocity in rad/sec. */
   public double getFFCharacterizationVelocity() {
-    return inputs.driveVelocityRadPerSec;
+    return inputs.driveVelocity.in(RadiansPerSecond);
   }
 }

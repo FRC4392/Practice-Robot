@@ -4,12 +4,18 @@
 
 package frc.robot.subsystems.swerve;
 
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.Volts;
 import static frc.robot.subsystems.swerve.SwerveConstants.*;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 
@@ -23,8 +29,8 @@ public class SwerveModuleIOSim implements SwerveModuleIO {
   private PIDController driveController = new PIDController(driveSimP, 0, driveSimD);
   private PIDController azimuthController = new PIDController(azimuthSimP, 0, azimuthSimD);
   private double driveFFVolts = 0.0;
-  private double driveAppliedVolts = 0.0;
-  private double azimuthAppliedVolts = 0.0;
+  private Voltage driveAppliedVolts = Volts.of(0.0);
+  private Voltage azimuthAppliedVolts = Volts.of(0.0);
 
   /** Constructor */
   public SwerveModuleIOSim() {
@@ -47,60 +53,67 @@ public class SwerveModuleIOSim implements SwerveModuleIO {
     // Run closed-loop control
     if (driveClosedLoop) {
       driveAppliedVolts =
-          driveFFVolts + driveController.calculate(driveSim.getAngularVelocityRadPerSec());
+          Volts.of(
+              driveFFVolts + driveController.calculate(driveSim.getAngularVelocityRadPerSec()));
     } else {
       driveController.reset();
     }
     if (azimuthClosedLoop) {
-      azimuthAppliedVolts = azimuthController.calculate(azimuthSim.getAngularPositionRad());
+      azimuthAppliedVolts =
+          Volts.of(azimuthController.calculate(azimuthSim.getAngularPositionRad()));
     } else {
       azimuthController.reset();
     }
 
     // Update simulation state
-    driveSim.setInputVoltage(MathUtil.clamp(driveAppliedVolts, -12.0, 12.0));
-    azimuthSim.setInputVoltage(MathUtil.clamp(azimuthAppliedVolts, -12.0, 12.0));
+    driveSim.setInputVoltage(MathUtil.clamp(driveAppliedVolts.in(Volts), -12.0, 12.0));
+    azimuthSim.setInputVoltage(MathUtil.clamp(azimuthAppliedVolts.in(Volts), -12.0, 12.0));
     driveSim.update(0.02);
     azimuthSim.update(0.02);
 
     // Update drive inputs
     inputs.driveConnected = true;
-    inputs.drivePositionRad = driveSim.getAngularPositionRad();
-    inputs.driveVelocityRadPerSec = driveSim.getAngularVelocityRadPerSec();
+    inputs.drivePositionAngle = driveSim.getAngularPosition();
+    inputs.driveVelocity = driveSim.getAngularVelocity();
     inputs.driveAppliedVolts = driveAppliedVolts;
-    inputs.driveCurrentAmps = Math.abs(driveSim.getCurrentDrawAmps());
+    inputs.driveCurrentAmps = Amps.of(Math.abs(driveSim.getCurrentDrawAmps()));
 
     // Update azimuth inputs
     inputs.azimuthConnected = true;
     inputs.azimuthPosition = new Rotation2d(azimuthSim.getAngularPositionRad());
-    inputs.azimuthVelocityRadPerSec = azimuthSim.getAngularVelocityRadPerSec();
+    inputs.azimuthVelocity = azimuthSim.getAngularVelocity();
     inputs.azimuthAppliedVolts = azimuthAppliedVolts;
-    inputs.azimuthCurrentAmps = Math.abs(azimuthSim.getCurrentDrawAmps());
+    inputs.azimuthCurrent = Amps.of(Math.abs(azimuthSim.getCurrentDrawAmps()));
 
     // Update odometry inputs (50Hz because high-frequency odometry in sim doesn't
     // matter)
     inputs.odometryTimestamps = new double[] {Timer.getFPGATimestamp()};
-    inputs.odometryDrivePositionsRad = new double[] {inputs.drivePositionRad};
+    // TODO: Convert to proper units
+    inputs.odometryDrivePositionsRad = new double[] {inputs.drivePositionAngle.in(Radians)};
     inputs.odometryAzimuthPositions = new Rotation2d[] {inputs.azimuthPosition};
   }
 
+  // TODO: Convert to volts
   @Override
   public void setDriveOpenLoop(double output) {
     driveClosedLoop = false;
-    driveAppliedVolts = output;
+    driveAppliedVolts = Volts.of(output);
   }
 
+  // TODO: Convert to volts
   @Override
   public void setAzimuthOpenLoop(double output) {
     azimuthClosedLoop = false;
-    azimuthAppliedVolts = output;
+    azimuthAppliedVolts = Volts.of(output);
   }
 
   @Override
-  public void setDriveVelocity(double velocityRadPerSec) {
+  public void setDriveVelocity(AngularVelocity velocity) {
     driveClosedLoop = true;
-    driveFFVolts = driveSimKs * Math.signum(velocityRadPerSec) + driveSimKv * velocityRadPerSec;
-    driveController.setSetpoint(velocityRadPerSec);
+    driveFFVolts =
+        driveSimKs * Math.signum(velocity.in(RadiansPerSecond))
+            + driveSimKv * velocity.in(RadiansPerSecond);
+    driveController.setSetpoint(velocity.in(RadiansPerSecond));
   }
 
   @Override
