@@ -15,15 +15,12 @@ import com.pathplanner.lib.pathfinding.Pathfinding;
 import com.pathplanner.lib.util.PathPlannerLogging;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -38,7 +35,6 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -46,9 +42,6 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.DeceiverRobotState;
 import frc.robot.RobotConstants;
 import frc.robot.RobotConstants.Mode;
-import frc.robot.subsystems.swerve.SwerveConstants.ReefSide;
-import frc.robot.subsystems.vision.Vision;
-import frc.robot.subsystems.vision.VisionIO.targetPoseObservation;
 import frc.robot.util.LocalADStarAK;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -752,118 +745,6 @@ public class Swerve extends SubsystemBase {
           kinematics.resetHeadings(headings);
           stop();
           setSwerveState(SwerveState.stopWithX);
-        });
-  }
-
-  // Year Specific commands
-
-  // Bad
-  public Command autoAlignCommand3D(Vision vision, ReefSide side) {
-    @SuppressWarnings("resource")
-    PIDController strafeController = new PIDController(4, 0, 0); // 0.08
-    @SuppressWarnings("resource")
-    PIDController forwardController = new PIDController(4, 0, 0); // 0.08
-
-    strafeController.setTolerance(Units.inchesToMeters(2));
-    forwardController.setTolerance(Units.inchesToMeters(2));
-
-    ProfiledPIDController angleController =
-        new ProfiledPIDController(
-            ANGLE_KP,
-            0.0,
-            ANGLE_KD,
-            new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
-
-    angleController.enableContinuousInput(-Math.PI, Math.PI);
-    angleController.setTolerance(Units.degreesToRadians(3));
-    return run(
-        () -> {
-          ReefSide targetSide = side;
-          // Get all the targets we are looking at
-          List<targetPoseObservation> targets = new LinkedList<>();
-
-          for (int i = 0; i < 3; i++) {
-            targets.add(vision.getLastTargetPoseObservation(i));
-          }
-
-          // Find closest target
-          int closestTag = -1;
-          double closest = -1;
-          for (int i = 0; i < targets.size(); i++) {
-            double distance =
-                targets.get(i).targetPose().getTranslation().getDistance(new Translation3d());
-
-            if ((distance < closest && distance > 0) || ((closest == -1) && (distance > 0))) {
-              closest = distance;
-              closestTag = i;
-            }
-          }
-
-          if (closestTag == -1) {
-            runVelocity(new ChassisSpeeds());
-            setSwerveState(SwerveState.autoDriveFail);
-            return;
-          }
-
-          int closestTagID = targets.get(closestTag).targetID();
-          Pose3d closestTagPose = targets.get(closestTag).targetPose();
-
-          SmartDashboard.putNumber("closestTagID", closestTagID);
-          SmartDashboard.putNumber("ClosestTagPose", closest);
-          SmartDashboard.putNumber("closestTagIndex", closestTag);
-
-          // Determine which way to offset
-          boolean invertSide = false;
-          if ((closestTagID >= 20 && closestTagID <= 22)
-              || (closestTagID >= 9 && closestTagID <= 11)) {
-            invertSide = true;
-          } else {
-            invertSide = false;
-          }
-
-          // invert if on the other side of the field
-          if (robotState.getAlliance().orElse(Alliance.Blue) == Alliance.Blue) {
-            invertSide = !invertSide;
-          }
-
-          if (invertSide && side == ReefSide.left) {
-            targetSide = ReefSide.right;
-          } else if (invertSide && side == ReefSide.right) {
-            targetSide = ReefSide.left;
-          }
-
-          // Determine offset Position
-          double positionOffset = 0;
-          if (targetSide == ReefSide.left) {
-            positionOffset = ReefOffsetLeft;
-          } else if (targetSide == ReefSide.right) {
-            positionOffset = ReefOffsetRight;
-          }
-
-          // Determine Rotation
-          Rotation2d rotationTarget =
-              getRotation()
-                  .plus(closestTagPose.getRotation().toRotation2d().minus(Rotation2d.k180deg));
-
-          // Position to offset position
-          double strafeSpeed = strafeController.calculate(closestTagPose.getX(), positionOffset);
-          double forwadSpeed =
-              -forwardController.calculate(closestTagPose.getZ(), ReffOffsetForward);
-          @SuppressWarnings("unused")
-          double rotation =
-              angleController.calculate(getRotation().getRadians(), rotationTarget.getRadians());
-          //  double rotation = 0;
-
-          if (strafeController.atSetpoint()
-              && forwardController.atSetpoint()
-              && angleController.atSetpoint()) {
-            setSwerveState(SwerveState.autoDriveDone);
-          } else {
-            setSwerveState(SwerveState.autoDriveInProgress);
-          }
-
-          ChassisSpeeds speeds = new ChassisSpeeds(forwadSpeed, strafeSpeed, 0);
-          runVelocity(speeds);
         });
   }
 }

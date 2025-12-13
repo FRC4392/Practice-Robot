@@ -179,13 +179,4 @@ public final class SwerveConstants {
   public static final double WHEEL_RADIUS_RAMP_RATE = 0.05; // Rad/Sec^2
   public static final double SLOW_SPEED_PERCENTAGE =
       0.75; // Percentage of full speed when in slow mode
-
-  public static final double ReefOffsetRight = Units.inchesToMeters(-6.5); // Meters
-  public static final double ReefOffsetLeft = Units.inchesToMeters(6.5); // Meters
-  public static final double ReffOffsetForward = -.55; // Meters
-
-  public static enum ReefSide {
-    left,
-    right;
-  }
 }
