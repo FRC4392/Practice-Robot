@@ -96,7 +96,7 @@ private Orchestra orchestra = new Orchestra();
   @Override
   public void testInit() {
     // CommandScheduler.getInstance().cancelAll();
-    orchestra.loadMusic("Mario.chrp");
+    orchestra.loadMusic("sonic.chrp");
   }
 
   @Override
