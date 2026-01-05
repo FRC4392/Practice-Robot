@@ -105,5 +105,7 @@ private Orchestra orchestra = new Orchestra();
   }
 
   @Override
-  public void testExit() {}
+  public void testExit() {
+    orchestra.stop();
+  }
 }
