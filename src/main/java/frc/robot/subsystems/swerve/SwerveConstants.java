@@ -137,7 +137,7 @@ public final class SwerveConstants {
   public static final double azimuthEncoderPositionFactor = 2 * Math.PI; // Rotations -> Radians
   public static final double azimuthEncoderVelocityFactor = (2 * Math.PI) / 60.0; // RPM -> Rad/Sec
   // Azimuth PID configuration
-  public static final double azimuthKp = 4.0;
+  public static final double azimuthKp = 1.0;
   public static final double azimuthKd = 0.0;
   public static final double azimuthSimP = 8.0;
   public static final double azimuthSimD = 0.0;
